@@ -106,7 +106,30 @@ echo "vless://7f601407-602e-4299-8ed8-30f7dc799c4c@$PUBLIC_IP:2087?type=ws&encry
 echo ""
 echo "trojan://lQcb30owdu@$PUBLIC_IP:8443?type=grpc&serviceName=&authority=&security=tls&fp=randomized&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=test.ostabat.ir#8443-pogl1715"
 echo ""
-echo "vmess://ewogICJ2IjogIjIiLAogICJwcyI6ICI0NDMtMHpmeG5vM2UiLAogICJhZGQiOiAi$PUBLIC_IPIiwKICAicG9ydCI6IDQ0MywKICAiaWQiOiAiOTdmMTdlNTctYTNjNC00ZWMxLTgwMDAtZThhMTFhMzUxMTkzIiwKICAic2N5IjogImF1dG8iLAogICJuZXQiOiAieGh0dHAiLAogICJ0bHMiOiAidGxzIiwKICAicGF0aCI6ICIvIiwKICAiaG9zdCI6ICIiLAogICJ0eXBlIjogImF1dG8iLAogICJzbmkiOiAidGVzdC5vc3RhYmF0LmlyIiwKICAiZnAiOiAicmFuZG9taXplZCIsCiAgImFscG4iOiAiaDIsaHR0cC8xLjEiLAogICJhbGxvd0luc2VjdXJlIjogdHJ1ZQp9"
+
+# VMESS JSON with IP replaced
+VMESS=$(cat <<EOF
+{
+  "v": "2",
+  "ps": "443-0zfxno3e",
+  "add": "$PUBLIC_IP",
+  "port": 443,
+  "id": "97f17e57-a3c4-4ec1-8000-e8a11a351193",
+  "scy": "auto",
+  "net": "xhttp",
+  "tls": "tls",
+  "path": "/",
+  "host": "",
+  "type": "auto",
+  "sni": "test.ostabat.ir",
+  "fp": "randomized",
+  "alpn": "h2,http/1.1",
+  "allowInsecure": true
+}
+EOF
+)
+
+echo "vmess://$(echo -n "$VMESS" | base64 -w 0)"
 echo ""
 echo "============================"
 echo -e "${plain}"
