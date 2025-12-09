@@ -2,102 +2,135 @@
 
 red='\033[0;31m'
 green='\033[0;32m'
-blue='\033[0;34m'
-yellow='\033[0;33m'
 plain='\033[0m'
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege" && exit 1
+[[ $EUID -ne 0 ]] && echo -e "${red}Run as root${plain}" && exit 1
 
-# Check OS and set release variable
+DOMAIN="$1"
+if [[ -z "$DOMAIN" ]]; then
+    echo -e "${red}Usage:${plain}"
+    echo "bash setup.sh yourdomain.com"
+    exit 1
+fi
+
+# Detect OS
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
-elif [[ -f /usr/lib/os-release ]]; then
-    source /usr/lib/os-release
-    release=$ID
 else
-    echo "Failed to check the system OS, please contact the author!" >&2
-    exit 1
+    echo "Cannot detect OS"; exit 1
 fi
-echo "The OS release is: $release"
-
-arch() {
-    case "$(uname -m)" in
-    x86_64 | x64 | amd64) echo 'amd64' ;;
-    i*86 | x86) echo '386' ;;
-    armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
-    armv7* | armv7 | arm) echo 'armv7' ;;
-    armv6* | armv6) echo 'armv6' ;;
-    armv5* | armv5) echo 'armv5' ;;
-    s390x) echo 's390x' ;;
-    *) echo -e "${red}Unsupported CPU architecture!${plain}" && exit 1 ;;
-    esac
-}
 
 install_base() {
-    case "${release}" in
-    ubuntu | debian | armbian)
-        apt-get update && apt-get install -y wget curl tar tzdata
-        ;;
-    centos | rhel | almalinux | rocky | ol)
-        yum -y update && yum install -y wget curl tar tzdata
-        ;;
-    fedora | amzn | virtuozzo)
-        dnf -y update && dnf install -y wget curl tar tzdata
-        ;;
-    arch | manjaro | parch)
-        pacman -Syu --noconfirm wget curl tar tzdata
-        ;;
-    opensuse-tumbleweed | opensuse-leap)
-        zypper refresh && zypper install -y wget curl tar timezone
-        ;;
-    alpine)
-        apk update && apk add wget curl tar tzdata
-        ;;
-    *)
-        apt-get update && apt-get install -y wget curl tar tzdata
-        ;;
+    case "$release" in
+        ubuntu|debian) apt update && apt install -y wget curl tar tzdata ;;
+        centos|rhel|almalinux|rocky) yum install -y wget curl tar tzdata ;;
+        *) apt update && apt install -y wget curl tar tzdata ;;
     esac
 }
 
-install_x-ui() {
+install_xui() {
+    echo -e "${green}Installing X-UI ...${plain}"
     cd /usr/local/
 
-    # Get latest version
-    tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    [[ -z "$tag_version" ]] && echo -e "${red}Failed to fetch x-ui version${plain}" && exit 1
-    echo -e "Installing x-ui version: $tag_version ..."
+    tag=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" \
+        | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
 
-    # Download x-ui
-    wget --inet4-only -N -O x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
-    [[ $? -ne 0 ]] && echo -e "${red}Download failed${plain}" && exit 1
+    [[ -z "$tag" ]] && echo "Cannot fetch version" && exit 1
 
-    # Stop old service if exists
-    if [[ -d /usr/local/x-ui ]]; then
-        systemctl stop x-ui 2>/dev/null || true
-        rm -rf /usr/local/x-ui
-    fi
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        aarch64|arm64) FILE="x-ui-linux-arm64.tar.gz" ;;
+        x86_64) FILE="x-ui-linux-amd64.tar.gz" ;;
+        *) FILE="x-ui-linux-amd64.tar.gz" ;;
+    esac
 
-    # Extract and set permissions
-    tar zxvf x-ui-linux-$(arch).tar.gz
-    rm -f x-ui-linux-$(arch).tar.gz
+    wget -O x-ui.tar.gz \
+        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/${FILE} \
+        || exit 1
+
+    systemctl stop x-ui 2>/dev/null
+    rm -rf /usr/local/x-ui
+
+    tar -xzf x-ui.tar.gz
+    rm -f x-ui.tar.gz
+
     cd x-ui
     chmod +x x-ui x-ui.sh bin/*
 
-    # Move x-ui script to /usr/bin
+    cp -f x-ui.service /etc/systemd/system/
     mv -f x-ui.sh /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
 
-    # Setup systemd
-    cp -f x-ui.service /etc/systemd/system/
     systemctl daemon-reload
     systemctl enable x-ui
     systemctl start x-ui
-
-    echo -e "${green}x-ui ${tag_version} installed and running${plain}"
 }
 
-echo -e "${green}Running installation...${plain}"
+replace_database() {
+    echo -e "${green}Applying clean database ...${plain}"
+    mkdir -p /etc/x-ui/
+
+    wget -O /etc/x-ui/x-ui.db \
+        https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/x-ui.db \
+        || exit 1
+
+    x-ui restart
+}
+
+############ RUN INSTALLATION ############
 install_base
-install_x-ui
+install_xui
+replace_database
+
+mkdir -p /etc/x-ui/configs/
+
+############################################
+### 1) VLESS : 80 (ID ثابت = 80)
+############################################
+cat <<EOF >/root/vless_80.json
+{
+  "v": "2",
+  "ps": "VLESS-80",
+  "add": "$DOMAIN",
+  "port": 80,
+  "id": "80",
+  "scy": "none",
+  "net": "ws",
+  "tls": "none",
+  "path": "/"
+}
+EOF
+
+############################################
+### 2) TROJAN : 8080 (پسورد ثابت = qFjldybtd2)
+############################################
+cat <<EOF >/root/trojan_8080.json
+{
+  "protocol": "trojan",
+  "password": "qFjldybtd2",
+  "address": "$DOMAIN",
+  "port": 8080,
+  "network": "ws",
+  "path": "/",
+  "security": "none"
+}
+EOF
+
+##########################
+### Output
+##########################
+echo -e "${green}"
+echo "=========== LINKS FOR $DOMAIN =========="
+
+echo ""
+echo "🔹 VLESS 80:"
+echo "vless://80@$DOMAIN:80?type=ws&encryption=none&path=%2F&security=none#80-80"
+
+echo ""
+echo "🔹 TROJAN 8080:"
+echo "trojan://qFjldybtd2@$DOMAIN:8080?type=ws&path=%2F&security=none#8080-nxix5u1l"
+
+echo ""
+echo "========================================="
+echo -e "${plain}"
