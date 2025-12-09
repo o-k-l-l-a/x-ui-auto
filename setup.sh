@@ -7,6 +7,14 @@ plain='\033[0m'
 # Root check
 [[ $EUID -ne 0 ]] && echo -e "${red}Please run as root${plain}" && exit 1
 
+# Domain from arg
+DOMAIN="$1"
+if [[ -z "$DOMAIN" ]]; then
+    echo -e "${red}You must enter domain like:${plain}"
+    echo "bash setup.sh example.com"
+    exit 1
+fi
+
 # Detect OS
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
@@ -16,21 +24,7 @@ else
     exit 1
 fi
 
-# Detect public IPv4
-PUBLIC_IP=$(curl -s ipv4.icanhazip.com)
-if [[ -z "$PUBLIC_IP" ]]; then
-    echo -e "${red}Cannot detect public IPv4!${plain}"
-    exit 1
-fi
-
-arch() {
-    case "$(uname -m)" in
-        x86_64|amd64) echo "amd64" ;;
-        aarch64|arm64) echo "arm64" ;;
-        *) echo "Unsupported arch"; exit 1 ;;
-    esac
-}
-
+# Install base
 install_base() {
     case "${release}" in
         ubuntu|debian)
@@ -53,7 +47,7 @@ install_xui() {
     echo -e "${green}Installing x-ui $tag ...${plain}"
 
     wget -O x-ui.tar.gz \
-        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/x-ui-linux-$(arch).tar.gz \
+        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/x-ui-linux-amd64.tar.gz \
         || exit 1
 
     systemctl stop x-ui 2>/dev/null
@@ -86,50 +80,103 @@ replace_database() {
     x-ui restart
 }
 
-# ------------------------
-#      RUN ALL
-# ------------------------
+# RUN
 install_base
 install_xui
 replace_database
 
-# Print Access Info
-echo -e "${green}"
-echo "Access URL: http://$PUBLIC_IP:2053/amin/"
-echo ""
-echo "========= ACCOUNTS ========="
-echo ""
 
-echo "vless://60d89805-faa6-44c0-b027-95c0680a7ddb@$PUBLIC_IP:2083?type=xhttp&encryption=none&path=%2F&host=&mode=auto&security=tls&fp=randomized&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=test.ostabat.ir#2083-gxdpyrpt"
-echo ""
-echo "vless://7f601407-602e-4299-8ed8-30f7dc799c4c@$PUBLIC_IP:2087?type=ws&encryption=none&path=%2F&host=&security=tls&fp=randomized&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=test.ostabat.ir#2087-82t5utox"
-echo ""
-echo "trojan://lQcb30owdu@$PUBLIC_IP:8443?type=grpc&serviceName=&authority=&security=tls&fp=randomized&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=test.ostabat.ir#8443-pogl1715"
-echo ""
+#############################################
+### NEW SECTION — SAVE 3 JSON CONFIG FILES ###
+#############################################
 
-# VMESS JSON with IP replaced
-VMESS=$(cat <<EOF
+mkdir -p /etc/x-ui/configs/
+
+# 1) VLESS
+cat <<EOF >/etc/x-ui/configs/vless_80.json
 {
   "v": "2",
-  "ps": "443-0zfxno3e",
-  "add": "$PUBLIC_IP",
-  "port": 443,
-  "id": "97f17e57-a3c4-4ec1-8000-e8a11a351193",
+  "ps": "VLESS-80",
+  "add": "$DOMAIN",
+  "port": 80,
+  "id": "80",
+  "scy": "none",
+  "net": "ws",
+  "tls": "none",
+  "path": "/",
+  "type": "none"
+}
+EOF
+
+# 2) VMESS
+cat <<EOF >/etc/x-ui/configs/vmess_8080.json
+{
+  "v": "2",
+  "ps": "VMESS-8080",
+  "add": "$DOMAIN",
+  "port": 8080,
+  "id": "8080",
   "scy": "auto",
-  "net": "xhttp",
-  "tls": "tls",
+  "net": "ws",
+  "tls": "none",
+  "path": "/",
+  "type": "none"
+}
+EOF
+
+# 3) TROJAN
+cat <<EOF >/etc/x-ui/configs/trojan_8880.json
+{
+  "protocol": "trojan",
+  "password": "8880",
+  "address": "$DOMAIN",
+  "port": 8880,
+  "network": "ws",
+  "path": "/",
+  "security": "none"
+}
+EOF
+
+echo -e "${green}Saved configs in: /etc/x-ui/configs/${plain}"
+
+
+###################################
+###  OUTPUT SECTION (LINKS)     ###
+###################################
+
+echo -e "${green}"
+echo "===== PROXY LINKS FOR DOMAIN: $DOMAIN ====="
+echo ""
+
+### 1) VLESS
+echo "vless://80@$DOMAIN:80?type=ws&encryption=none&path=%2F&host=&security=none#80-80"
+echo ""
+
+### 2) VMESS
+VMESS_JSON=$(cat <<EOF
+{
+  "v": "2",
+  "ps": "8080-8080",
+  "add": "$DOMAIN",
+  "port": 8080,
+  "id": "8080",
+  "scy": "auto",
+  "net": "ws",
+  "tls": "none",
   "path": "/",
   "host": "",
-  "type": "auto",
-  "sni": "test.ostabat.ir",
-  "fp": "randomized",
-  "alpn": "h2,http/1.1",
-  "allowInsecure": true
+  "type": "none"
 }
 EOF
 )
 
-echo "vmess://$(echo -n "$VMESS" | base64 -w 0)"
+VMESS_B64=$(echo -n "$VMESS_JSON" | base64 -w 0)
+echo "vmess://$VMESS_B64"
 echo ""
-echo "============================"
+
+### 3) TROJAN
+echo "trojan://8880@$DOMAIN:8880?type=ws&path=%2F&host=&security=none#8880-8880"
+echo ""
+
+echo "============================================"
 echo -e "${plain}"
