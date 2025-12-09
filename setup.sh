@@ -13,7 +13,7 @@ if [[ -z "$DOMAIN" ]]; then
     exit 1
 fi
 
-# OS detect
+# Detect OS
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
@@ -30,14 +30,17 @@ install_base() {
 }
 
 install_xui() {
+    echo -e "${green}Installing X-UI ...${plain}"
     cd /usr/local/
+
     tag=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" \
         | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
 
     [[ -z "$tag" ]] && echo "Cannot fetch version" && exit 1
 
     wget -O x-ui.tar.gz \
-        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/x-ui-linux-amd64.tar.gz || exit 1
+        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/x-ui-linux-amd64.tar.gz \
+        || exit 1
 
     systemctl stop x-ui 2>/dev/null
     rm -rf /usr/local/x-ui
@@ -58,12 +61,22 @@ install_xui() {
 }
 
 replace_database() {
+    echo -e "${green}Downloading new x-ui.db ...${plain}"
     mkdir -p /etc/x-ui/
-    wget -O /etc/x-ui/x-ui.db \
-        https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/x-ui.db || exit 1
 
+    wget -O /etc/x-ui/x-ui.db \
+        https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/x-ui.db \
+        || exit 1
+
+    echo -e "${green}Restarting X-UI ...${plain}"
     x-ui restart
 }
+
+############ RUN INSTALLATION ############
+
+install_base
+install_xui
+replace_database
 
 ############################################
 ### Generate UUIDs ###
@@ -122,7 +135,6 @@ cat <<EOF >/etc/x-ui/configs/trojan_8880.json
   "security": "none"
 }
 EOF
-
 
 ##########################
 ### Output Section
