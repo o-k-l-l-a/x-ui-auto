@@ -23,9 +23,9 @@ fi
 
 install_base() {
     case "$release" in
-        ubuntu|debian) apt update && apt install -y wget curl tar tzdata uuid-runtime ;;
-        centos|rhel|almalinux|rocky) yum install -y wget curl tar tzdata uuid ;;
-        *) apt update && apt install -y wget curl tar tzdata uuid-runtime ;;
+        ubuntu|debian) apt update && apt install -y wget curl tar tzdata ;;
+        centos|rhel|almalinux|rocky) yum install -y wget curl tar tzdata ;;
+        *) apt update && apt install -y wget curl tar tzdata ;;
     esac
 }
 
@@ -41,8 +41,8 @@ install_xui() {
     ARCH=$(uname -m)
     case "$ARCH" in
         aarch64|arm64) FILE="x-ui-linux-arm64.tar.gz" ;;
-        x86_64)        FILE="x-ui-linux-amd64.tar.gz" ;;
-        *)             FILE="x-ui-linux-amd64.tar.gz" ;;
+        x86_64) FILE="x-ui-linux-amd64.tar.gz" ;;
+        *) FILE="x-ui-linux-amd64.tar.gz" ;;
     esac
 
     wget -O x-ui.tar.gz \
@@ -68,33 +68,25 @@ install_xui() {
 }
 
 replace_database() {
-    echo -e "${green}Downloading new x-ui.db ...${plain}"
+    echo -e "${green}Applying clean database ...${plain}"
     mkdir -p /etc/x-ui/
 
     wget -O /etc/x-ui/x-ui.db \
         https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/x-ui.db \
         || exit 1
 
-    echo -e "${green}Restarting X-UI ...${plain}"
     x-ui restart
 }
 
 ############ RUN INSTALLATION ############
-
 install_base
 install_xui
 replace_database
 
-############################################
-### Generate UUIDs ###
-############################################
-UUID_VLESS="80"
-UUID_TROJAN="qFjldybtd2"
-
 mkdir -p /etc/x-ui/configs/
 
 ############################################
-### 1) VLESS : 80
+### 1) VLESS : 80 (ID ثابت = 80)
 ############################################
 cat <<EOF >/etc/x-ui/configs/vless_80.json
 {
@@ -102,7 +94,7 @@ cat <<EOF >/etc/x-ui/configs/vless_80.json
   "ps": "VLESS-80",
   "add": "$DOMAIN",
   "port": 80,
-  "id": "$UUID_VLESS",
+  "id": "80",
   "scy": "none",
   "net": "ws",
   "tls": "none",
@@ -111,12 +103,12 @@ cat <<EOF >/etc/x-ui/configs/vless_80.json
 EOF
 
 ############################################
-### 2) TROJAN : 8080
+### 2) TROJAN : 8080 (پسورد ثابت = qFjldybtd2)
 ############################################
 cat <<EOF >/etc/x-ui/configs/trojan_8080.json
 {
   "protocol": "trojan",
-  "password": "$UUID_TROJAN",
+  "password": "qFjldybtd2",
   "address": "$DOMAIN",
   "port": 8080,
   "network": "ws",
@@ -126,7 +118,7 @@ cat <<EOF >/etc/x-ui/configs/trojan_8080.json
 EOF
 
 ##########################
-### Output Section
+### Output
 ##########################
 echo -e "${green}"
 echo "=========== LINKS FOR $DOMAIN =========="
