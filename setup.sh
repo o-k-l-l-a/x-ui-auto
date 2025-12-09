@@ -88,7 +88,7 @@ mkdir -p /etc/x-ui/configs/
 ############################################
 ### 1) VLESS : 80 (ID ثابت = 80)
 ############################################
-cat <<EOF >/etc/x-ui/configs/vless_80.json
+cat <<EOF >/root/vless_80.json
 {
   "v": "2",
   "ps": "VLESS-80",
@@ -105,7 +105,7 @@ EOF
 ############################################
 ### 2) TROJAN : 8080 (پسورد ثابت = qFjldybtd2)
 ############################################
-cat <<EOF >/etc/x-ui/configs/trojan_8080.json
+cat <<EOF >/root/trojan_8080.json
 {
   "protocol": "trojan",
   "password": "qFjldybtd2",
