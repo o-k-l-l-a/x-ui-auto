@@ -21,11 +21,20 @@ else
     echo "Cannot detect OS"; exit 1
 fi
 
+# Detect CPU Arch
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64)   XUI_FILE="x-ui-linux-amd64.tar.gz" ;;
+    aarch64)  XUI_FILE="x-ui-linux-arm64-v8.tar.gz" ;;
+    armv7l)   XUI_FILE="x-ui-linux-arm-v7.tar.gz" ;;
+    *) echo "Unsupported CPU architecture: $ARCH"; exit 1 ;;
+esac
+
 install_base() {
     case "$release" in
-        ubuntu|debian) apt update && apt install -y wget curl tar tzdata uuid-runtime ;;
-        centos|rhel|almalinux|rocky) yum install -y wget curl tar tzdata uuid ;;
-        *) apt update && apt install -y wget curl tar tzdata uuid-runtime ;;
+        ubuntu|debian) apt update && apt install -y wget curl tar tzdata ;;
+        centos|rhel|almalinux|rocky) yum install -y wget curl tar tzdata ;;
+        *) apt update && apt install -y wget curl tar tzdata ;;
     esac
 }
 
@@ -38,8 +47,10 @@ install_xui() {
 
     [[ -z "$tag" ]] && echo "Cannot fetch version" && exit 1
 
+    echo -e "${green}Downloading correct build for $ARCH ...${plain}"
+
     wget -O x-ui.tar.gz \
-        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/x-ui-linux-amd64.tar.gz \
+        https://github.com/MHSanaei/3x-ui/releases/download/${tag}/${XUI_FILE} \
         || exit 1
 
     systemctl stop x-ui 2>/dev/null
@@ -60,6 +71,7 @@ install_xui() {
     systemctl start x-ui
 }
 
+# Replace new database
 replace_database() {
     echo -e "${green}Downloading new x-ui.db ...${plain}"
     mkdir -p /etc/x-ui/
@@ -72,101 +84,25 @@ replace_database() {
     x-ui restart
 }
 
-############ RUN INSTALLATION ############
+######### START INSTALL #########
 
 install_base
 install_xui
 replace_database
 
-############################################
-### Generate UUIDs ###
-############################################
-UUID1=$(uuidgen)
-UUID2=$(uuidgen)
-UUID3=$(uuidgen)
-
-mkdir -p /etc/x-ui/configs/
-
-############################################
-### 1) VLESS : 80
-############################################
-cat <<EOF >/etc/x-ui/configs/vless_80.json
-{
-  "v": "2",
-  "ps": "VLESS-80",
-  "add": "$DOMAIN",
-  "port": 80,
-  "id": "$UUID1",
-  "scy": "none",
-  "net": "ws",
-  "tls": "none",
-  "path": "/"
-}
-EOF
-
-############################################
-### 2) VMESS : 8080
-############################################
-cat <<EOF >/etc/x-ui/configs/vmess_8080.json
-{
-  "v": "2",
-  "ps": "VMESS-8080",
-  "add": "$DOMAIN",
-  "port": 8080,
-  "id": "$UUID2",
-  "scy": "auto",
-  "net": "ws",
-  "tls": "none",
-  "path": "/"
-}
-EOF
-
-############################################
-### 3) TROJAN : 8880
-############################################
-cat <<EOF >/etc/x-ui/configs/trojan_8880.json
-{
-  "protocol": "trojan",
-  "password": "$UUID3",
-  "address": "$DOMAIN",
-  "port": 8880,
-  "network": "ws",
-  "path": "/",
-  "security": "none"
-}
-EOF
-
 ##########################
-### Output Section
+### Print Final Links  ###
 ##########################
 echo -e "${green}"
 echo "=========== LINKS FOR $DOMAIN =========="
 
 echo ""
 echo "🔹 VLESS 80:"
-echo "vless://$UUID1@$DOMAIN:80?path=%2F&type=ws&security=none#VLESS-80"
+echo "vless://80@$DOMAIN:80?type=ws&encryption=none&path=%2F&host=&security=none#80-80"
 
 echo ""
-echo "🔹 VMESS 8080:"
-VMESS_JSON=$(cat <<EOF
-{
-  "v": "2",
-  "ps": "VMESS-8080",
-  "add": "$DOMAIN",
-  "port": "8080",
-  "id": "$UUID2",
-  "scy": "auto",
-  "net": "ws",
-  "tls": "none",
-  "path": "/"
-}
-EOF
-)
-echo "vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
-
-echo ""
-echo "🔹 TROJAN 8880:"
-echo "trojan://$UUID3@$DOMAIN:8880?type=ws&path=%2F&security=none#TROJAN-8880"
+echo "🔹 TROJAN 8080:"
+echo "trojan://qFjldybtd2@$DOMAIN:8080?type=ws&path=%2F&host=&security=none#8080-nxix5u1l"
 
 echo ""
 echo "========================================="
