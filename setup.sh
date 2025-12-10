@@ -119,8 +119,6 @@ EOF
 ############################################
 cat <<EOF >/root/vless.txt
 vless://80@$DOMAIN:80?type=ws&encryption=none&path=%2F&security=none#80-80
-
-trojan://qFjldybtd2@$DOMAIN:8080?type=ws&path=%2F&security=none#8080-nxix5u1l
 EOF
 
 ############################################
