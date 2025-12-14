@@ -26,6 +26,7 @@ DOMAINS=("$@")
 ########################
 # Firewall
 ########################
+echo "y" | x-ui uninstall
 apt update -y
 apt -y install  ufw
 
