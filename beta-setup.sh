@@ -35,8 +35,8 @@ ufw allow 8080
 ufw allow 2095
 ufw allow 4848
 
-#echo "y" | ufw disable
-#echo "y" | ufw enable
+echo "y" | ufw disable
+echo "y" | ufw enable
 ufw reload
 ufw status numbered
 
