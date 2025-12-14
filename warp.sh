@@ -3,36 +3,37 @@ set -e
 
 green='\033[0;32m'
 red='\033[0;31m'
+yellow='\033[1;33m'
 plain='\033[0m'
 
 echo -e "${green}Installing Cloudflare WARP...${plain}"
 
-# نصب WARP
-curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ jammy main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-sudo apt-get update
-sudo apt-get install -y cloudflare-warp
+curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ jammy main" \
+> /etc/apt/sources.list.d/cloudflare-client.list
 
-# Start سرویس WARP
+apt update
+apt install -y cloudflare-warp
+
 echo -e "${green}Starting WARP daemon...${plain}"
-sudo systemctl enable --now warp-svc
+systemctl enable --now warp-svc
+sleep 5
+
+echo -e "${green}Resetting registration...${plain}"
+warp-cli registration delete || true
 sleep 2
 
-# حذف رجیستری قدیمی
-echo -e "${green}Deleting old registration...${plain}"
-sudo warp-cli registration delete || true
-
-# رجیستر اولیه بدون لایسنس
+echo -e "${green}Creating new registration (auto-accept ToS)...${plain}"
 printf "y\n" | warp-cli registration new
+sleep 2
 
-# گرفتن لیست لایسنس‌ها
 LICENSES=$(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/license.txt | tr -d '\r' | grep -v '^$')
 VALID_LICENSE=""
 
 echo -e "${green}Applying licenses...${plain}"
 for lic in $LICENSES; do
     if warp-cli registration license "$lic" >/dev/null 2>&1; then
-        echo -e "${green}License applied successfully: $lic${plain}"
+        echo -e "${green}License applied: $lic${plain}"
         VALID_LICENSE="$lic"
         break
     else
@@ -40,18 +41,13 @@ for lic in $LICENSES; do
     fi
 done
 
-# اگر هیچ لایسنسی valid نبود → Free registration
 if [[ -z "$VALID_LICENSE" ]]; then
-    echo -e "${red}No valid license found. Switching to Free registration...${plain}"
-    sudo warp-cli registration delete || true
-    printf "y\n" | warp-cli registration new
+    echo -e "${yellow}No valid license found → Free mode${plain}"
 fi
 
-# ست کردن مود Proxy و پورت
-echo -e "${green}Setting Proxy mode and port 4848...${plain}"
+echo -e "${green}Setting Proxy mode...${plain}"
 warp-cli mode proxy
 warp-cli proxy port 4848
 
-# کانکت و نمایش وضعیت
 warp-cli connect
 warp-cli status
