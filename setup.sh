@@ -1,6 +1,15 @@
 #!/bin/bash
 
+apt -y install ufw
+ufw allow 22
+ufw allow 80
+ufw allow 8080
+ufw allow 2095
+ufw allow 4848
 ufw disable
+ufw enable
+ufw reload
+ufw status numbered
 bash <(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/warp.sh)
 red='\033[0;31m'
 green='\033[0;32m'
