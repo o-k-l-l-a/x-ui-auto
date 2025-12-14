@@ -43,8 +43,10 @@ warp-cli mode proxy >/dev/null 2>&1
 warp-cli proxy port 4848 >/dev/null 2>&1
 warp-cli connect >/dev/null 2>&1
 
-# بررسی وضعیت لایسنس یا Free
-if [ "$LICENSE_APPLIED" = true ]; then
+# بررسی وضعیت و چاپ نوع رجیستر
+STATUS=$(warp-cli status | grep -i "License")
+
+if [[ "$STATUS" == *"Active"* ]]; then
     echo -e "${green}WARP setup completed: License applied.${plain}"
 else
     echo -e "${yellow}WARP setup completed: Free registration.${plain}"
