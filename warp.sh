@@ -11,7 +11,7 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] ht
 sudo apt-get update -qq
 sudo apt-get install -y cloudflare-warp >/dev/null 2>&1
 
-# start daemon
+# Start daemon
 sudo systemctl enable --now warp-svc >/dev/null 2>&1
 sleep 2
 
@@ -21,7 +21,7 @@ sudo warp-cli registration delete >/dev/null 2>&1 || true
 # رجیستر اولیه Free برای آماده سازی
 printf "y\n" | warp-cli registration new >/dev/null 2>&1
 
-# گرفتن لیست لایسنس‌ها
+# گرفتن لیست لایسنس‌ها و اعمال اولین valid
 LICENSES=$(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/license.txt | tr -d '\r' | grep -v '^$')
 LICENSE_APPLIED=false
 
