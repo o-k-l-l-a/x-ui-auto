@@ -13,22 +13,21 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] ht
 sudo apt-get update
 sudo apt-get install -y cloudflare-warp
 
-# توقف سرویس و حذف رجیستری قدیمی
-echo -e "${green}Stopping WARP service and deleting old registration...${plain}"
+# توقف سرویس
 sudo systemctl stop warp-svc || true
 sudo warp-cli disconnect || true
-sudo warp-cli registration delete || true
+
+# پاک کردن رجیستری و cache به صورت force
+echo -e "${green}Force deleting any existing WARP registration...${plain}"
+sudo rm -rf /var/lib/Cloudflare /etc/WARP /usr/local/share/Cloudflare || true
 
 # رجیستر جدید (silent)
 echo -e "${green}Registering WARP client...${plain}"
 printf "y\n" | warp-cli registration new
 
-# دانلود لیست لایسنس‌ها
-echo -e "${green}Fetching licenses...${plain}"
+# گرفتن لایسنس‌ها
 LICENSES=$(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/license.txt | tr -d '\r' | grep -v '^$')
-
 VALID_LICENSE=""
-
 echo -e "${green}Trying licenses...${plain}"
 for lic in $LICENSES; do
     if warp-cli registration license "$lic" >/dev/null 2>&1; then
@@ -47,13 +46,11 @@ if [[ -z "$VALID_LICENSE" ]]; then
     printf "y\n" | warp-cli registration new
 fi
 
-# فعال کردن مود Proxy و پورت 4848
-echo -e "${green}Setting proxy mode and port...${plain}"
+# Proxy mode + پورت
 warp-cli mode proxy
 warp-cli proxy port 4848
 
 # کانکت کردن
-echo -e "${green}Connecting WARP...${plain}"
 warp-cli connect
 
 # نمایش وضعیت
