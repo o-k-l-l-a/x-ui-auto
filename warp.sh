@@ -2,7 +2,6 @@
 set -e
 
 green='\033[0;32m'
-red='\033[0;31m'
 plain='\033[0m'
 
 # نصب Cloudflare WARP
@@ -44,5 +43,5 @@ warp-cli mode proxy >/dev/null 2>&1
 warp-cli proxy port 4848 >/dev/null 2>&1
 warp-cli connect >/dev/null 2>&1
 
-# نمایش فقط وضعیت نهایی
+# پیام نهایی
 echo -e "${green}WARP setup completed.${plain}"
