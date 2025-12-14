@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Colors
 green='\033[0;32m'
 red='\033[0;31m'
 plain='\033[0m'
@@ -14,9 +13,11 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] ht
 sudo apt-get update
 sudo apt-get install -y cloudflare-warp
 
-# حذف رجیستری قبلی بدون توقف
-echo -e "${green}Deleting any existing WARP registration...${plain}"
-warp-cli registration delete >/dev/null 2>&1 || true
+# توقف سرویس و حذف رجیستری قدیمی
+echo -e "${green}Stopping WARP service and deleting old registration...${plain}"
+sudo systemctl stop warp-svc || true
+sudo warp-cli disconnect || true
+sudo warp-cli registration delete || true
 
 # رجیستر جدید (silent)
 echo -e "${green}Registering WARP client...${plain}"
@@ -42,7 +43,7 @@ done
 # اگر هیچ لایسنسی اوکی نبود → Free registration
 if [[ -z "$VALID_LICENSE" ]]; then
     echo -e "${red}No valid license found. Switching to Free registration...${plain}"
-    warp-cli registration delete >/dev/null 2>&1 || true
+    sudo warp-cli registration delete >/dev/null 2>&1 || true
     printf "y\n" | warp-cli registration new
 fi
 
