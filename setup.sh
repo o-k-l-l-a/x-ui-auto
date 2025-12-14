@@ -6,8 +6,8 @@ ufw allow 80
 ufw allow 8080
 ufw allow 2095
 ufw allow 4848
-ufw disable
-ufw enable
+echo "y" | ufw disable
+echo "y" | ufw enable
 ufw reload
 ufw status numbered
 bash <(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/warp.sh)
