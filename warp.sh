@@ -55,3 +55,4 @@ warp-cli proxy port 4848
 # کانکت و نمایش وضعیت
 warp-cli connect
 warp-cli status
+
