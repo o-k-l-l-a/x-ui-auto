@@ -2,6 +2,7 @@
 set -e
 
 green='\033[0;32m'
+yellow='\033[1;33m'
 plain='\033[0m'
 
 # نصب Cloudflare WARP
@@ -26,7 +27,6 @@ LICENSE_APPLIED=false
 
 for lic in $LICENSES; do
     if warp-cli registration license "$lic" >/dev/null 2>&1; then
-        echo -e "${green}License applied successfully${plain}"
         LICENSE_APPLIED=true
         break
     fi
@@ -43,5 +43,9 @@ warp-cli mode proxy >/dev/null 2>&1
 warp-cli proxy port 4848 >/dev/null 2>&1
 warp-cli connect >/dev/null 2>&1
 
-# پیام نهایی
-echo -e "${green}WARP setup completed.${plain}"
+# بررسی وضعیت لایسنس یا Free
+if [ "$LICENSE_APPLIED" = true ]; then
+    echo -e "${green}WARP setup completed: License applied.${plain}"
+else
+    echo -e "${yellow}WARP setup completed: Free registration.${plain}"
+fi
