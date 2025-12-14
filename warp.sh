@@ -36,7 +36,7 @@ for lic in $LICENSES; do
         VALID_LICENSE="$lic"
         break
     else
-        echo -e "${red}License failed: $lic${plain}"
+        echo -e "${yellow}Trying license...${plain}"
     fi
 done
 
