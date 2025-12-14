@@ -14,7 +14,13 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] ht
 sudo apt-get update
 sudo apt-get install -y cloudflare-warp
 
-# رجیستر (silent)
+# حذف رجیستری قبلی اگر موجود باشد
+if warp-cli registration show >/dev/null 2>&1; then
+    echo -e "${red}Existing registration found. Deleting...${plain}"
+    warp-cli registration delete || true
+fi
+
+# رجیستر جدید (silent)
 printf "y\n" | warp-cli registration new
 
 # دانلود لیست لایسنس‌ها
@@ -49,4 +55,3 @@ warp-cli connect
 
 # نمایش وضعیت
 warp-cli status
-
