@@ -27,7 +27,7 @@ DOMAINS=("$@")
 # Firewall
 ########################
 apt update -y
-apt install -y ufw
+apt -y install  ufw
 
 ufw allow 22
 ufw allow 80
