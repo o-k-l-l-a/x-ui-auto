@@ -13,40 +13,39 @@ sudo apt-get install -y cloudflare-warp >/dev/null 2>&1
 
 # Start daemon
 sudo systemctl enable --now warp-svc >/dev/null 2>&1
-sleep 2
+sleep 3
 
 # حذف رجیستری قدیمی
 sudo warp-cli registration delete >/dev/null 2>&1 || true
 
-# رجیستر اولیه Free برای آماده سازی
+# رجیستر Free اولیه
 printf "y\n" | warp-cli registration new >/dev/null 2>&1
 
-# گرفتن لیست لایسنس‌ها و اعمال اولین valid
+# خواندن لایسنس‌ها
 LICENSES=$(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/license.txt | tr -d '\r' | grep -v '^$')
 LICENSE_APPLIED=false
 
 for lic in $LICENSES; do
-    if warp-cli registration license "$lic" >/dev/null 2>&1; then
+    warp-cli registration license "$lic" >/dev/null 2>&1 || continue
+    sleep 2
+    STATUS=$(warp-cli status 2>/dev/null | grep -i "License" || true)
+    if [[ "$STATUS" == *"Active"* ]]; then
+        echo -e "${green}License applied successfully: $lic${plain}"
         LICENSE_APPLIED=true
         break
     fi
 done
 
-# اگر هیچ لایسنسی valid نبود → Free registration
+# اگر هیچ لایسنسی اوکی نبود → Free registration
 if [ "$LICENSE_APPLIED" = false ]; then
     sudo warp-cli registration delete >/dev/null 2>&1 || true
     printf "y\n" | warp-cli registration new >/dev/null 2>&1
+    echo -e "${yellow}WARP setup completed: Free registration${plain}"
+else
+    echo -e "${green}WARP setup completed: License registration${plain}"
 fi
 
 # ست کردن مود Proxy و پورت
 warp-cli mode proxy >/dev/null 2>&1
 warp-cli proxy port 4848 >/dev/null 2>&1
 warp-cli connect >/dev/null 2>&1
-
-# بررسی وضعیت واقعی و چاپ نوع رجیستر
-TYPE=$(warp-cli status | grep -i "License" || true)
-if [[ "$TYPE" == *"Active"* ]]; then
-    echo -e "${green}WARP setup completed: License applied.${plain}"
-else
-    echo -e "${yellow}WARP setup completed: Free registration.${plain}"
-fi
