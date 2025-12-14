@@ -80,11 +80,14 @@ install_xui() {
 
 replace_database() {
     echo -e "${green}Applying clean database ...${plain}"
-    mkdir -p /etc/x-ui/
 
-    wget -O /etc/x-ui/x-ui.db \
-        https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/x-ui.db \
-        || exit 1
+    local DB_DIR="/etc/x-ui"
+    local DB_FILE="x-ui.db"
+    local DB_URL="https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/no-warp-x-ui.db"
+
+    mkdir -p "$DB_DIR" || exit 1
+
+    wget -q -O "$DB_DIR/$DB_FILE" "$DB_URL" || exit 1
 
     x-ui restart
 }
