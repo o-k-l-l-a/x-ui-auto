@@ -36,7 +36,7 @@ for lic in $LICENSES; do
         VALID_LICENSE="$lic"
         break
     else
-        #echo -e "${red}License failed: $lic${plain}"
+        echo -e "${red}License failed: $lic${plain}"
     fi
 done
 
@@ -55,4 +55,3 @@ warp-cli proxy port 4848
 # کانکت و نمایش وضعیت
 warp-cli connect
 warp-cli status
-
