@@ -45,7 +45,7 @@ ufw status numbered
 ########################
 # WARP
 ########################
-#bash <(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/warp.sh)
+bash <(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/WireProxy.sh)
 
 ########################
 # Detect OS
@@ -104,7 +104,7 @@ install_xui() {
 replace_database() {
     local DB_DIR="/etc/x-ui"
     local DB_FILE="x-ui.db"
-    local DB_URL="https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/no-warp-x-ui.db"
+    local DB_URL="https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/x-ui.db"
 
     mkdir -p "$DB_DIR" || exit 1
     wget -q -O "$DB_DIR/$DB_FILE" "$DB_URL" || exit 1
