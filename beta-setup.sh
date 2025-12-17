@@ -1,6 +1,14 @@
 #!/bin/bash
 
 ########################
+# Cleanup old output files
+########################
+rm -f /root/vless_*
+rm -f /root/trojan_*
+rm -f /root/*.json
+rm -f /root/domin*.txt
+
+########################
 # Root check
 ########################
 [[ $EUID -ne 0 ]] && echo "Run as root" && exit 1
