@@ -23,14 +23,17 @@ fi
 
 DOMAINS=("$@")
 
+########################
+# Cleanup old stuff
+########################
 echo "y" | x-ui uninstall
 echo "y" | warp u
+
 ########################
 # Firewall
 ########################
-echo "y" | x-ui uninstall
 apt update -y
-apt -y install  ufw
+apt install -y ufw
 
 ufw allow 22
 ufw allow 80
@@ -41,8 +44,6 @@ ufw allow 4848
 echo "y" | ufw disable
 echo "y" | ufw enable
 ufw reload
-ufw status numbered
-
 
 ########################
 # WARP
@@ -119,44 +120,16 @@ install_xui
 replace_database
 
 ########################
-# Create configs per domain
+# Create VLESS txt files (fixed names)
 ########################
+i=1
 for DOMAIN in "${DOMAINS[@]}"; do
 
-cat <<EOF >/root/vless_80-${DOMAIN}.json
-{
-  "v": "2",
-  "ps": "VLESS-80",
-  "add": "${DOMAIN}",
-  "port": 80,
-  "id": "80",
-  "scy": "none",
-  "net": "ws",
-  "tls": "none",
-  "path": "/"
-}
-EOF
-
-cat <<EOF >/root/trojan_8080-${DOMAIN}.json
-{
-  "protocol": "trojan",
-  "password": "qFjldybtd2",
-  "address": "${DOMAIN}",
-  "port": 8080,
-  "network": "ws",
-  "path": "/",
-  "security": "none"
-}
-EOF
-
-cat <<EOF >/root/vless-${DOMAIN}.txt
+cat <<EOF >/root/domin${i}.txt
 vless://80@${DOMAIN}:80?type=ws&encryption=none&path=%2F&security=none#80-${DOMAIN}
 EOF
 
-cat <<EOF >/root/trojan-${DOMAIN}.txt
-trojan://qFjldybtd2@${DOMAIN}:8080?type=ws&path=%2F&security=none#8080-${DOMAIN}
-EOF
-
+((i++))
 done
 
 ########################
@@ -164,7 +137,7 @@ done
 ########################
 echo -e "${green}"
 echo "=========== DONE =========="
-echo "Created files in /root:"
-ls /root | grep -E 'vless_|trojan_'
+echo "Created files:"
+ls /root/domin*.txt
 echo "==========================="
 echo -e "${plain}"
