@@ -140,6 +140,9 @@ EOF
 ((i++))
 done
 
+rm -f /root/vless_*
+rm -f /root/trojan_*
+rm -f /root/*.json
 ########################
 # Output
 ########################
