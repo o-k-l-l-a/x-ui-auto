@@ -23,6 +23,8 @@ fi
 
 DOMAINS=("$@")
 
+echo "y" | x-ui uninstall
+echo "y" | warp u
 ########################
 # Firewall
 ########################
