@@ -34,8 +34,8 @@ DOMAINS=("$@")
 ########################
 # Cleanup old stuff
 ########################
-echo "y" | x-ui uninstall
-echo "y" | warp u
+echo "y" | x-ui uninstall 2>/dev/null
+echo "y" | warp u 2>/dev/null
 
 ########################
 # Firewall
@@ -54,11 +54,6 @@ echo "y" | ufw enable
 ufw reload
 
 ########################
-# WARP
-########################
-#bash <(curl -s https://raw.githubusercontent.com/o-k-l-l-a/x-ui-auto/refs/heads/main/WireProxy.sh)
-
-########################
 # Detect OS
 ########################
 source /etc/os-release
@@ -66,9 +61,24 @@ release=$ID
 
 install_base() {
     case "$release" in
-        ubuntu|debian) apt install -y wget curl tar tzdata ;;
+        ubuntu|debian) apt install -y wget curl tar tzdata ;; 
         centos|rhel|almalinux|rocky) yum install -y wget curl tar tzdata ;;
+        fedora) dnf install -y wget curl tar tzdata ;;
+        alpine) apk add --no-cache wget curl tar tzdata ;;
         *) apt install -y wget curl tar tzdata ;;
+    esac
+}
+
+get_arch() {
+    case "$(uname -m)" in
+        x86_64|x64|amd64) echo "amd64" ;;
+        i*86|x86) echo "386" ;;
+        aarch64|arm64|armv8*) echo "arm64" ;;
+        armv7*|armv7) echo "armv7" ;;
+        armv6*|armv6) echo "armv6" ;;
+        armv5*|armv5) echo "armv5" ;;
+        s390x) echo "s390x" ;;
+        *) echo "amd64" ;; # fallback
     esac
 }
 
@@ -82,15 +92,13 @@ install_xui() {
     tag=$(curl -Ls https://api.github.com/repos/MHSanaei/3x-ui/releases/latest \
         | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
 
-    ARCH=$(uname -m)
-    case "$ARCH" in
-        aarch64|arm64) FILE="x-ui-linux-arm64.tar.gz" ;;
-        x86_64) FILE="x-ui-linux-amd64.tar.gz" ;;
-        *) FILE="x-ui-linux-amd64.tar.gz" ;;
-    esac
+    [[ -z "$tag" ]] && echo "Cannot fetch version" && exit 1
+
+    ARCH=$(get_arch)
+    FILE="x-ui-linux-${ARCH}.tar.gz"
 
     wget -O x-ui.tar.gz \
-      https://github.com/MHSanaei/3x-ui/releases/download/${tag}/${FILE} || exit 1
+      "https://github.com/MHSanaei/3x-ui/releases/download/${tag}/${FILE}" || exit 1
 
     systemctl stop x-ui 2>/dev/null
     rm -rf /usr/local/x-ui
@@ -101,8 +109,19 @@ install_xui() {
     cd x-ui || exit 1
     chmod +x x-ui x-ui.sh bin/*
 
-    cp x-ui.service /etc/systemd/system/
-    mv x-ui.sh /usr/bin/x-ui
+    # Install service
+    if [[ -f x-ui.service ]]; then
+        cp -f x-ui.service /etc/systemd/system/
+    else
+        # fallback: download service based on OS
+        case "$release" in
+            ubuntu|debian) curl -sL -o /etc/systemd/system/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian ;;
+            *) curl -sL -o /etc/systemd/system/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel ;;
+        esac
+    fi
+
+    mv -f x-ui.sh /usr/bin/x-ui
+    chmod +x /usr/bin/x-ui
 
     systemctl daemon-reload
     systemctl enable x-ui
@@ -128,22 +147,23 @@ install_xui
 replace_database
 
 ########################
-# Create VLESS txt files (fixed names)
+# Create VLESS txt files
 ########################
 i=1
 for DOMAIN in "${DOMAINS[@]}"; do
-
 cat <<EOF >/root/domin${i}.txt
 vless://80@${DOMAIN}:80?path=%2F&security=none&fragment=90-250%2C10-100%2C1-3&encryption=none&type=ws#80-${DOMAIN}
 EOF
-
-
 ((i++))
 done
 
+########################
+# Cleanup intermediate files
+########################
 rm -f /root/vless_*
 rm -f /root/trojan_*
 rm -f /root/*.json
+
 ########################
 # Output
 ########################
