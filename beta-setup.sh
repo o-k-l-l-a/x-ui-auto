@@ -134,7 +134,7 @@ i=1
 for DOMAIN in "${DOMAINS[@]}"; do
 
 cat <<EOF >/root/domin${i}.txt
-vless://80@${DOMAIN}:80?type=ws&encryption=none&path=%2F&security=none#80-${DOMAIN}
+vless://80@${DOMAIN}:80?type=tcp&encryption=none&path=%2F&host=google.com&headerType=http&security=none#80-${DOMAIN}
 EOF
 
 ((i++))
